@@ -11,6 +11,7 @@ import { formatFileSize } from "@/lib/work/utils";
 import { LikeButton } from "./like-button";
 import { WorkActions } from "./work-actions";
 import { FileLink } from "./file-link";
+import { AuthorFollow } from "@/components/work/author-follow";
 
 type Params = Promise<{ id: string }>;
 
@@ -73,14 +74,24 @@ export default async function WorkPage({ params }: { params: Params }) {
 
   // Лайкнул ли текущий пользователь
   let isLiked = false;
+  let isFollowingAuthor = false;
   if (viewer) {
-    const { data: like } = await supabase
-      .from("likes")
-      .select("user_id")
-      .eq("user_id", viewer.id)
-      .eq("work_id", id)
-      .maybeSingle();
+    const [{ data: like }, { data: follow }] = await Promise.all([
+      supabase
+        .from("likes")
+        .select("user_id")
+        .eq("user_id", viewer.id)
+        .eq("work_id", id)
+        .maybeSingle(),
+      supabase
+        .from("follows")
+        .select("follower_id")
+        .eq("follower_id", viewer.id)
+        .eq("following_id", work.author_id)
+        .maybeSingle(),
+    ]);
     isLiked = !!like;
+    isFollowingAuthor = !!follow;
   }
 
   // Извлекаем теги из вложенного селекта
@@ -167,6 +178,12 @@ export default async function WorkPage({ params }: { params: Params }) {
         </Link>
 
         <div className="flex items-center gap-2">
+          {viewer && !isOwner && (
+            <AuthorFollow
+              targetUserId={work.author_id}
+              initialFollowing={isFollowingAuthor}
+            />
+          )}
           <LikeButton
             workId={work.id}
             initialLiked={isLiked}

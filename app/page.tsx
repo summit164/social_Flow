@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { BookOpen, Sparkles, Users } from "lucide-react";
@@ -9,6 +10,9 @@ export default async function Home() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  // Залогиненных сразу везём на ленту — главная нужна только гостям как лендинг
+  if (user) redirect("/feed");
 
   return (
     <main className="flex flex-1 flex-col items-center px-6 py-20 sm:py-28">

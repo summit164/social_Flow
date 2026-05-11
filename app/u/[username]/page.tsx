@@ -85,7 +85,7 @@ export default async function PublicProfilePage({ params }: { params: Params }) 
           совпадают с центрами логотипа и аватара в шапке (та же max-w-[1400px]
           с px-10 = 40px padding и иконками внутри по 22px от края). */}
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <div> 
+        <div>
       {/* ======= ОСНОВНАЯ КАРТОЧКА: обложка + аватар + базовая инфа ======= */}
       <section className="overflow-hidden rounded-lg border border-border bg-card">
         {/* Обложка */}

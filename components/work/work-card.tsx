@@ -1,5 +1,13 @@
 import Link from "next/link";
 import { FileText, Heart, EyeOff } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getInitials } from "@/lib/profile/utils";
+
+type Author = {
+  username: string;
+  display_name: string | null;
+  avatar_url: string | null;
+};
 
 type WorkCardProps = {
   id: string;
@@ -10,10 +18,13 @@ type WorkCardProps = {
   publishedAt: string | null;
   filesCount: number;
   likesCount: number;
+  /** Если передан — отображается строка с автором сверху. */
+  author?: Author;
 };
 
 /**
- * Карточка превью работы — для лент и страниц профиля.
+ * Карточка-превью работы. Используется в лентах и на профилях.
+ * Если передан author — рендерится мини-блок с аватаркой и именем (для ленты).
  */
 export function WorkCard({
   id,
@@ -24,6 +35,7 @@ export function WorkCard({
   publishedAt,
   filesCount,
   likesCount,
+  author,
 }: WorkCardProps) {
   const date = publishedAt
     ? new Date(publishedAt).toLocaleDateString("ru-RU", {
@@ -34,46 +46,78 @@ export function WorkCard({
     : null;
 
   return (
-    <Link
-      href={`/work/${id}`}
-      className="block rounded-lg border border-border bg-card p-5 transition-colors hover:bg-secondary/50"
-    >
-      <div className="flex items-start justify-between gap-3">
-        <h3 className="text-base font-medium leading-snug line-clamp-2">{title}</h3>
-        {status === "draft" && (
-          <span className="shrink-0 inline-flex items-center gap-1 rounded-md bg-secondary px-2 py-0.5 text-xs text-muted-foreground">
-            <EyeOff className="size-3" />
-            Черновик
-          </span>
-        )}
-      </div>
-
-      {description && (
-        <p className="mt-2 text-sm text-muted-foreground line-clamp-2 leading-relaxed">
-          {description}
-        </p>
+    <article className="rounded-lg border border-border bg-card transition-colors hover:bg-secondary/30">
+      {author && (
+        <div className="flex items-center gap-2 px-5 pt-4">
+          <Link
+            href={`/u/${author.username}`}
+            className="flex items-center gap-2 group"
+          >
+            <Avatar className="size-7">
+              <AvatarImage
+                src={author.avatar_url ?? undefined}
+                alt={author.display_name ?? author.username}
+              />
+              <AvatarFallback className="text-xs bg-secondary">
+                {getInitials(author.display_name ?? author.username)}
+              </AvatarFallback>
+            </Avatar>
+            <span className="text-sm font-medium group-hover:underline">
+              {author.display_name ?? author.username}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              @{author.username}
+            </span>
+          </Link>
+          {date && (
+            <>
+              <span className="text-xs text-muted-foreground">·</span>
+              <span className="text-xs text-muted-foreground">{date}</span>
+            </>
+          )}
+        </div>
       )}
 
-      <div className="mt-3 flex items-center gap-3 text-xs text-muted-foreground">
-        {discipline && (
-          <span className="inline-flex items-center rounded-full bg-primary/10 text-primary px-2 py-0.5 font-medium">
-            {discipline}
-          </span>
+      <Link href={`/work/${id}`} className="block px-5 py-4">
+        <div className="flex items-start justify-between gap-3">
+          <h3 className="text-base font-medium leading-snug line-clamp-2">
+            {title}
+          </h3>
+          {status === "draft" && (
+            <span className="shrink-0 inline-flex items-center gap-1 rounded-md bg-secondary px-2 py-0.5 text-xs text-muted-foreground">
+              <EyeOff className="size-3" />
+              Черновик
+            </span>
+          )}
+        </div>
+
+        {description && (
+          <p className="mt-2 text-sm text-muted-foreground line-clamp-2 leading-relaxed">
+            {description}
+          </p>
         )}
-        {date && <span>{date}</span>}
-        {filesCount > 0 && (
-          <span className="flex items-center gap-1">
-            <FileText className="size-3.5" />
-            {filesCount}
-          </span>
-        )}
-        {likesCount > 0 && (
-          <span className="flex items-center gap-1">
-            <Heart className="size-3.5" />
-            {likesCount}
-          </span>
-        )}
-      </div>
-    </Link>
+
+        <div className="mt-3 flex items-center gap-3 text-xs text-muted-foreground">
+          {discipline && (
+            <span className="inline-flex items-center rounded-full bg-primary/10 text-primary px-2 py-0.5 font-medium">
+              {discipline}
+            </span>
+          )}
+          {!author && date && <span>{date}</span>}
+          {filesCount > 0 && (
+            <span className="flex items-center gap-1">
+              <FileText className="size-3.5" />
+              {filesCount}
+            </span>
+          )}
+          {likesCount > 0 && (
+            <span className="flex items-center gap-1">
+              <Heart className="size-3.5" />
+              {likesCount}
+            </span>
+          )}
+        </div>
+      </Link>
+    </article>
   );
 }

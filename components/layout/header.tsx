@@ -40,10 +40,10 @@ export async function Header() {
           </span>
         </Link>
 
-        {/* Навигация — пока заглушки, наполним на следующих шагах */}
+        {/* Навигация */}
         <nav className="hidden md:flex items-center gap-1">
-          <Button variant="ghost" size="sm" disabled>
-            Лента
+          <Button variant="ghost" size="sm" asChild>
+            <Link href="/feed">Лента</Link>
           </Button>
           <Button variant="ghost" size="sm" disabled>
             Поиск
