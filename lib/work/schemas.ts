@@ -34,6 +34,30 @@ export const workInputSchema = z.object({
 
 export type WorkInput = z.infer<typeof workInputSchema>;
 
+/**
+ * Схема валидации поста — короткой заметки.
+ * У поста только текст и опциональные дисциплина/теги, без файлов.
+ */
+export const postInputSchema = z.object({
+  content: z
+    .string()
+    .min(1, "Напишите что-нибудь")
+    .max(2000, "Максимум 2000 символов"),
+});
+
+export type PostInput = z.infer<typeof postInputSchema>;
+
+export const POST_MAX_LENGTH = 2000;
+
+// К посту можно прикрепить одно изображение или одно видео.
+export const POST_MEDIA_IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "gif", "webp"];
+export const POST_MEDIA_VIDEO_EXTENSIONS = ["mp4", "webm", "mov", "m4v"];
+export const POST_MEDIA_EXTENSIONS = [
+  ...POST_MEDIA_IMAGE_EXTENSIONS,
+  ...POST_MEDIA_VIDEO_EXTENSIONS,
+];
+export const POST_MEDIA_MAX_SIZE = 50 * 1024 * 1024; // 50 МБ
+
 // Допустимые расширения файлов работ
 export const ALLOWED_FILE_EXTENSIONS = [
   "pdf",

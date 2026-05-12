@@ -5,9 +5,13 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import {
   workInputSchema,
+  postInputSchema,
   type WorkInput,
+  type PostInput,
   ALLOWED_FILE_EXTENSIONS,
   MAX_FILE_SIZE,
+  POST_MEDIA_EXTENSIONS,
+  POST_MEDIA_MAX_SIZE,
 } from "./schemas";
 import { parseTagsString, getFileExtension } from "./utils";
 
@@ -120,6 +124,91 @@ export async function createWorkAction(
         tagRows.map((t) => ({ work_id: work.id, tag_id: t.id }))
       );
     }
+  }
+
+  revalidatePath("/", "layout");
+  redirect(`/work/${work.id}`);
+}
+
+/**
+ * Создание поста — короткой заметки. Сохраняется в той же таблице works
+ * с kind='post'. Файлов нет, title генерируется из первых слов content,
+ * чтобы удовлетворить NOT NULL-констрейнт.
+ */
+export async function createPostAction(
+  input: PostInput,
+  formData: FormData
+): Promise<ActionResult> {
+  const parsed = postInputSchema.safeParse(input);
+  if (!parsed.success) {
+    return { error: "Некорректные данные формы" };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Не авторизован" };
+
+  // Медиа — максимум один файл, фото или видео
+  const mediaCandidate = formData.get("media");
+  const media =
+    mediaCandidate instanceof File && mediaCandidate.size > 0
+      ? mediaCandidate
+      : null;
+  if (media) {
+    const ext = getFileExtension(media.name);
+    if (!ext || !POST_MEDIA_EXTENSIONS.includes(ext)) {
+      return { error: "Поддерживаются только изображения и видео" };
+    }
+    if (media.size > POST_MEDIA_MAX_SIZE) {
+      return { error: "Файл больше 50 МБ" };
+    }
+  }
+
+  const content = parsed.data.content.trim();
+  // Заголовок поста — первые 80 символов первой строки content, чтобы
+  // удовлетворить check (length(title) >= 1) и нормально выглядеть в списках.
+  const firstLine = content.split("\n")[0] ?? content;
+  const title = firstLine.slice(0, 80) || "Пост";
+
+  const { data: work, error: insertError } = await supabase
+    .from("works")
+    .insert({
+      author_id: user.id,
+      title,
+      content,
+      kind: "post",
+      status: "published",
+      published_at: new Date().toISOString(),
+    })
+    .select("id")
+    .single();
+
+  if (insertError || !work) {
+    return { error: insertError?.message ?? "Не удалось опубликовать пост" };
+  }
+
+  if (media) {
+    const safeName = media.name.replace(/[^\w.\-]/g, "_");
+    const path = `${user.id}/${work.id}/${Date.now()}-${safeName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("work-files")
+      .upload(path, media, { contentType: media.type });
+    if (uploadError) {
+      await supabase.from("works").delete().eq("id", work.id);
+      return { error: `Не удалось загрузить файл: ${uploadError.message}` };
+    }
+
+    await supabase.from("work_files").insert({
+      work_id: work.id,
+      storage_path: path,
+      filename: media.name,
+      mime_type: media.type || null,
+      size_bytes: media.size,
+      position: 0,
+    });
   }
 
   revalidatePath("/", "layout");

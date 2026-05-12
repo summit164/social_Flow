@@ -10,21 +10,35 @@ import {
   Pencil,
   Users,
   Send,
+  NotebookText,
+  MessageSquareText,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getInitials } from "@/lib/profile/utils";
+import { cn } from "@/lib/utils";
 import { FollowButton } from "./follow-button";
 import { WorkCard } from "@/components/work/work-card";
+import { PostCard } from "@/components/work/post-card";
+import { buildPostMediaMap } from "@/lib/work/post-media";
 
 type Params = Promise<{ username: string }>;
+type SearchParams = Promise<{ tab?: string }>;
 
 export async function generateMetadata({ params }: { params: Params }) {
   const { username } = await params;
   return { title: `@${username} — StudyFlow` };
 }
 
-export default async function PublicProfilePage({ params }: { params: Params }) {
+export default async function PublicProfilePage({
+  params,
+  searchParams,
+}: {
+  params: Params;
+  searchParams: SearchParams;
+}) {
   const { username } = await params;
+  const { tab } = await searchParams;
+  const activeTab: "artifacts" | "posts" = tab === "posts" ? "posts" : "artifacts";
   const supabase = await createClient();
 
   const { data: profile } = await supabase
@@ -62,17 +76,33 @@ export default async function PublicProfilePage({ params }: { params: Params }) 
         .eq("follower_id", profile.id),
     ]);
 
-  // Работы автора. Если смотрит автор — показываем все, иначе только опубликованные.
-  // RLS на works уже отфильтрует, но явная проверка status не помешает.
+  // Работы автора по активной вкладке. RLS отфильтрует чужие черновики.
   const { data: works } = await supabase
     .from("works")
     .select(
-      `id, title, description, discipline, status, published_at, created_at,
-       work_files(count), likes(count)`
+      `id, title, content, description, discipline, status, kind, published_at, created_at,
+       work_files(storage_path, mime_type, position), likes(count)`
     )
     .eq("author_id", profile.id)
+    .eq("kind", activeTab === "posts" ? "post" : "artifact")
     .order("published_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false });
+
+  // Signed URLs для медиа постов на этом профиле
+  const postMedia =
+    activeTab === "posts"
+      ? await buildPostMediaMap(
+          supabase,
+          (works ?? []).map((w) => ({
+            id: w.id,
+            work_files: (w.work_files as unknown as Array<{
+              storage_path: string;
+              mime_type: string | null;
+              position: number;
+            }> | null) ?? [],
+          }))
+        )
+      : new Map<string, { url: string; mime: string | null }>();
 
   const displayName = profile.display_name || profile.username;
   const links = profile.links ?? {};
@@ -167,14 +197,29 @@ export default async function PublicProfilePage({ params }: { params: Params }) 
         </div>
       </section>
 
-          {/* ======= РАБОТЫ — под аватарной панелью, в левой колонке ======= */}
+          {/* ======= ПУБЛИКАЦИИ — табы Артефакты / Посты ======= */}
           <section className="mt-4 rounded-lg border border-border bg-card p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base font-medium">Работы</h2>
+            <div className="flex items-center justify-between mb-4 -mx-2">
+              <div className="flex border-b border-border flex-1 mx-2">
+                <ProfileTabLink
+                  href={`/u/${profile.username}`}
+                  label="Артефакты"
+                  icon={<NotebookText className="size-4" />}
+                  active={activeTab === "artifacts"}
+                />
+                <ProfileTabLink
+                  href={`/u/${profile.username}?tab=posts`}
+                  label="Посты"
+                  icon={<MessageSquareText className="size-4" />}
+                  active={activeTab === "posts"}
+                />
+              </div>
               {isOwnProfile && (
                 <Link
-                  href="/work/new"
-                  className="text-xs text-primary hover:underline"
+                  href={
+                    activeTab === "posts" ? "/work/new?kind=post" : "/work/new"
+                  }
+                  className="ml-3 text-xs text-primary hover:underline whitespace-nowrap"
                 >
                   + Создать
                 </Link>
@@ -182,33 +227,53 @@ export default async function PublicProfilePage({ params }: { params: Params }) 
             </div>
             {works && works.length > 0 ? (
               <div className="flex flex-col gap-3">
-                {works.map((w) => (
-                  <WorkCard
-                    key={w.id}
-                    id={w.id}
-                    title={w.title}
-                    description={w.description}
-                    discipline={w.discipline}
-                    status={w.status}
-                    publishedAt={w.published_at ?? w.created_at}
-                    filesCount={
-                      Array.isArray(w.work_files) && w.work_files[0]
-                        ? (w.work_files[0] as { count: number }).count
-                        : 0
-                    }
-                    likesCount={
-                      Array.isArray(w.likes) && w.likes[0]
-                        ? (w.likes[0] as { count: number }).count
-                        : 0
-                    }
-                  />
-                ))}
+                {works.map((w) => {
+                  const likesCount =
+                    Array.isArray(w.likes) && w.likes[0]
+                      ? (w.likes[0] as { count: number }).count
+                      : 0;
+                  const filesCount = Array.isArray(w.work_files)
+                    ? w.work_files.length
+                    : 0;
+
+                  if (activeTab === "posts") {
+                    return (
+                      <PostCard
+                        key={w.id}
+                        id={w.id}
+                        content={w.content}
+                        discipline={w.discipline}
+                        publishedAt={w.published_at ?? w.created_at}
+                        likesCount={likesCount}
+                        media={postMedia.get(w.id) ?? null}
+                      />
+                    );
+                  }
+
+                  return (
+                    <WorkCard
+                      key={w.id}
+                      id={w.id}
+                      title={w.title}
+                      description={w.description}
+                      discipline={w.discipline}
+                      status={w.status}
+                      publishedAt={w.published_at ?? w.created_at}
+                      filesCount={filesCount}
+                      likesCount={likesCount}
+                    />
+                  );
+                })}
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">
                 {isOwnProfile
-                  ? "У вас пока нет работ. Создайте первую — нажмите «+ Создать»."
-                  : "У этого пользователя пока нет публикаций."}
+                  ? activeTab === "posts"
+                    ? "У вас пока нет постов. Напишите первый — нажмите «+ Создать»."
+                    : "У вас пока нет артефактов. Создайте первый — нажмите «+ Создать»."
+                  : activeTab === "posts"
+                    ? "У этого пользователя пока нет постов."
+                    : "У этого пользователя пока нет артефактов."}
               </p>
             )}
           </section>
@@ -292,6 +357,33 @@ export default async function PublicProfilePage({ params }: { params: Params }) 
         </aside>
       </div>
     </main>
+  );
+}
+
+function ProfileTabLink({
+  href,
+  label,
+  icon,
+  active,
+}: {
+  href: string;
+  label: string;
+  icon: React.ReactNode;
+  active: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      className={cn(
+        "inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors -mb-px border-b-2",
+        active
+          ? "border-primary text-foreground"
+          : "border-transparent text-muted-foreground hover:text-foreground"
+      )}
+    >
+      {icon}
+      {label}
+    </Link>
   );
 }
 

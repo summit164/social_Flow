@@ -7,6 +7,7 @@
  */
 
 export type WorkStatus = "draft" | "published" | "archived";
+export type WorkKind = "artifact" | "post";
 
 export type Profile = {
   id: string;
@@ -32,6 +33,7 @@ export type Work = {
   content: string | null;
   discipline: string | null;
   status: WorkStatus;
+  kind: WorkKind;
   views_count: number;
   created_at: string;
   updated_at: string;
@@ -91,6 +93,6 @@ export type Database = {
       follows:  { Row: Follow;  Insert: Pick<Follow, "follower_id" | "following_id">; Update: never };
       bookmarks:{ Row: Bookmark;Insert: Pick<Bookmark, "user_id" | "work_id">; Update: never };
     };
-    Enums: { work_status: WorkStatus };
+    Enums: { work_status: WorkStatus; work_kind: WorkKind };
   };
 };

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Plus } from "lucide-react";
+import { Plus, Notebook, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
 import { UserMenu } from "./user-menu";
@@ -43,9 +43,13 @@ export async function Header() {
         {/* Навигация */}
         <nav className="hidden md:flex items-center gap-1">
           <Button variant="ghost" size="sm" asChild>
-            <Link href="/feed">Лента</Link>
+            <Link href="/feed">
+              <Notebook className="size-4" />
+              Лента
+            </Link>
           </Button>
           <Button variant="ghost" size="sm" disabled>
+            <Search className="size-4" />
             Поиск
           </Button>
         </nav>
