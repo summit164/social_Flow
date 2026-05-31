@@ -81,12 +81,27 @@ export default async function PublicProfilePage({
     .from("works")
     .select(
       `id, title, content, description, discipline, status, kind, published_at, created_at,
-       work_files(storage_path, mime_type, position), likes(count)`
+       work_files(storage_path, mime_type, position),
+       likes(count), comments(count)`
     )
     .eq("author_id", profile.id)
     .eq("kind", activeTab === "posts" ? "post" : "artifact")
     .order("published_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false });
+
+  // Лайки текущего пользователя на этих работах
+  const workIds = (works ?? []).map((w) => w.id);
+  const likedSet = new Set<string>();
+  if (viewer && workIds.length > 0) {
+    const { data: likedRows } = await supabase
+      .from("likes")
+      .select("work_id")
+      .eq("user_id", viewer.id)
+      .in("work_id", workIds);
+    likedRows?.forEach((r) =>
+      likedSet.add((r as unknown as { work_id: string }).work_id)
+    );
+  }
 
   // Signed URLs для медиа постов на этом профиле
   const postMedia =
@@ -232,9 +247,15 @@ export default async function PublicProfilePage({
                     Array.isArray(w.likes) && w.likes[0]
                       ? (w.likes[0] as { count: number }).count
                       : 0;
+                  const commentsCount =
+                    Array.isArray(w.comments) && w.comments[0]
+                      ? (w.comments[0] as { count: number }).count
+                      : 0;
                   const filesCount = Array.isArray(w.work_files)
                     ? w.work_files.length
                     : 0;
+                  const viewerLiked = likedSet.has(w.id);
+                  const canInteract = !!viewer;
 
                   if (activeTab === "posts") {
                     return (
@@ -245,6 +266,9 @@ export default async function PublicProfilePage({
                         discipline={w.discipline}
                         publishedAt={w.published_at ?? w.created_at}
                         likesCount={likesCount}
+                        commentsCount={commentsCount}
+                        viewerLiked={viewerLiked}
+                        canInteract={canInteract}
                         media={postMedia.get(w.id) ?? null}
                       />
                     );
@@ -261,6 +285,9 @@ export default async function PublicProfilePage({
                       publishedAt={w.published_at ?? w.created_at}
                       filesCount={filesCount}
                       likesCount={likesCount}
+                      commentsCount={commentsCount}
+                      viewerLiked={viewerLiked}
+                      canInteract={canInteract}
                     />
                   );
                 })}

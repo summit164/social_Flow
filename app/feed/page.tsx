@@ -39,7 +39,8 @@ export default async function FeedPage({
     .select(
       `id, title, content, description, discipline, status, kind, published_at, created_at,
        author:profiles!works_author_id_fkey(username, display_name, avatar_url),
-       work_files(storage_path, mime_type, position), likes(count)`
+       work_files(storage_path, mime_type, position),
+       likes(count), comments(count)`
     )
     .eq("status", "published")
     .order("published_at", { ascending: false })
@@ -65,6 +66,20 @@ export default async function FeedPage({
   }
 
   const { data: works } = await query;
+
+  // Какие из этих работ уже лайкнул текущий пользователь
+  const workIds = (works ?? []).map((w) => w.id);
+  const likedSet = new Set<string>();
+  if (user && workIds.length > 0) {
+    const { data: likedRows } = await supabase
+      .from("likes")
+      .select("work_id")
+      .eq("user_id", user.id)
+      .in("work_id", workIds);
+    likedRows?.forEach((r) =>
+      likedSet.add((r as unknown as { work_id: string }).work_id)
+    );
+  }
 
   // Сгенерим signed URLs для медиа постов одним батчем
   const postRows = (works ?? [])
@@ -114,9 +129,15 @@ export default async function FeedPage({
               Array.isArray(w.likes) && w.likes[0]
                 ? (w.likes[0] as { count: number }).count
                 : 0;
+            const commentsCount =
+              Array.isArray(w.comments) && w.comments[0]
+                ? (w.comments[0] as { count: number }).count
+                : 0;
             const filesCount = Array.isArray(w.work_files)
               ? w.work_files.length
               : 0;
+            const viewerLiked = likedSet.has(w.id);
+            const canInteract = !!user;
 
             if (w.kind === "post") {
               return (
@@ -127,6 +148,9 @@ export default async function FeedPage({
                   discipline={w.discipline}
                   publishedAt={w.published_at ?? w.created_at}
                   likesCount={likesCount}
+                  commentsCount={commentsCount}
+                  viewerLiked={viewerLiked}
+                  canInteract={canInteract}
                   author={a ?? undefined}
                   media={postMedia.get(w.id) ?? null}
                 />
@@ -144,6 +168,9 @@ export default async function FeedPage({
                 publishedAt={w.published_at ?? w.created_at}
                 filesCount={filesCount}
                 likesCount={likesCount}
+                commentsCount={commentsCount}
+                viewerLiked={viewerLiked}
+                canInteract={canInteract}
                 author={a ?? undefined}
               />
             );

@@ -48,9 +48,11 @@ export async function Header() {
               Лента
             </Link>
           </Button>
-          <Button variant="ghost" size="sm" disabled>
-            <Search className="size-4" />
-            Поиск
+          <Button variant="ghost" size="sm" asChild>
+            <Link href="/search">
+              <Search className="size-4" />
+              Поиск
+            </Link>
           </Button>
         </nav>
 

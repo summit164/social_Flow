@@ -77,6 +77,16 @@ export type Bookmark = {
   created_at: string;
 };
 
+export type Comment = {
+  id: string;
+  work_id: string;
+  author_id: string;
+  parent_id: string | null;
+  content: string;
+  created_at: string;
+  updated_at: string;
+};
+
 /**
  * Минимальное Database-описание для @supabase/supabase-js.
  * Достаточно для строгой типизации .from("works") и т.д.
@@ -92,6 +102,7 @@ export type Database = {
       likes:    { Row: Like;    Insert: Pick<Like, "user_id" | "work_id">; Update: never };
       follows:  { Row: Follow;  Insert: Pick<Follow, "follower_id" | "following_id">; Update: never };
       bookmarks:{ Row: Bookmark;Insert: Pick<Bookmark, "user_id" | "work_id">; Update: never };
+      comments: { Row: Comment; Insert: Pick<Comment, "work_id" | "author_id" | "content"> & Partial<Comment>; Update: Partial<Comment> };
     };
     Enums: { work_status: WorkStatus; work_kind: WorkKind };
   };

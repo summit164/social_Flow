@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { FileText, Heart, EyeOff } from "lucide-react";
+import { FileText, EyeOff } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getInitials } from "@/lib/profile/utils";
+import { CardActions } from "./card-actions";
 
 type Author = {
   username: string;
@@ -18,14 +19,13 @@ type WorkCardProps = {
   publishedAt: string | null;
   filesCount: number;
   likesCount: number;
+  commentsCount: number;
+  viewerLiked: boolean;
+  canInteract: boolean;
   /** Если передан — отображается строка с автором сверху. */
   author?: Author;
 };
 
-/**
- * Карточка-превью работы. Используется в лентах и на профилях.
- * Если передан author — рендерится мини-блок с аватаркой и именем (для ленты).
- */
 export function WorkCard({
   id,
   title,
@@ -35,6 +35,9 @@ export function WorkCard({
   publishedAt,
   filesCount,
   likesCount,
+  commentsCount,
+  viewerLiked,
+  canInteract,
   author,
 }: WorkCardProps) {
   const date = publishedAt
@@ -110,14 +113,18 @@ export function WorkCard({
               {filesCount}
             </span>
           )}
-          {likesCount > 0 && (
-            <span className="flex items-center gap-1">
-              <Heart className="size-3.5" />
-              {likesCount}
-            </span>
-          )}
         </div>
       </Link>
+
+      <div className="px-3 pb-2 pt-1 border-t border-border/60">
+        <CardActions
+          workId={id}
+          initialLiked={viewerLiked}
+          likesCount={likesCount}
+          commentsCount={commentsCount}
+          canInteract={canInteract}
+        />
+      </div>
     </article>
   );
 }

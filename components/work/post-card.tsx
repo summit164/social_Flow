@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { Heart } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getInitials } from "@/lib/profile/utils";
+import { CardActions } from "./card-actions";
 
 type Author = {
   username: string;
@@ -20,20 +20,22 @@ type PostCardProps = {
   discipline: string | null;
   publishedAt: string | null;
   likesCount: number;
+  commentsCount: number;
+  viewerLiked: boolean;
+  canInteract: boolean;
   author?: Author;
   media?: PostMedia | null;
 };
 
-/**
- * Карточка-превью поста. В отличие от WorkCard, главное содержимое — текст.
- * Заголовок не отображается: для постов он автогенерируется из content.
- */
 export function PostCard({
   id,
   content,
   discipline,
   publishedAt,
   likesCount,
+  commentsCount,
+  viewerLiked,
+  canInteract,
   author,
   media,
 }: PostCardProps) {
@@ -89,40 +91,40 @@ export function PostCard({
         </div>
 
         {media && (
-          <div className="mt-3 overflow-hidden border-y border-border bg-black">
+          <div className="mt-3 mx-5 overflow-hidden rounded-md border border-border bg-black">
             {isVideo ? (
               <video
                 src={media.url}
                 controls
                 preload="metadata"
-                className="w-full max-h-[520px] object-contain"
+                className="w-full max-h-72 object-contain"
               />
             ) : (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={media.url}
                 alt=""
-                className="w-full max-h-[520px] object-contain"
+                className="w-full max-h-72 object-contain"
               />
             )}
           </div>
         )}
-
-        <div className="px-5 py-3 flex items-center gap-3 text-xs text-muted-foreground">
-          {discipline && (
-            <span className="inline-flex items-center rounded-full bg-primary/10 text-primary px-2 py-0.5 font-medium">
-              {discipline}
-            </span>
-          )}
-          {!author && date && <span>{date}</span>}
-          {likesCount > 0 && (
-            <span className="flex items-center gap-1">
-              <Heart className="size-3.5" />
-              {likesCount}
-            </span>
-          )}
-        </div>
       </Link>
+
+      <div className="px-3 pb-2 pt-2 flex items-center justify-between gap-3">
+        <CardActions
+          workId={id}
+          initialLiked={viewerLiked}
+          likesCount={likesCount}
+          commentsCount={commentsCount}
+          canInteract={canInteract}
+        />
+        {discipline && (
+          <span className="inline-flex items-center rounded-full bg-primary/10 text-primary px-2 py-0.5 text-xs font-medium mr-2">
+            {discipline}
+          </span>
+        )}
+      </div>
     </article>
   );
 }
