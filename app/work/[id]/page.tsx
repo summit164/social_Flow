@@ -3,7 +3,7 @@ import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { FileText, EyeOff } from "lucide-react";
+import { FileText, EyeOff, Layers } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getInitials } from "@/lib/profile/utils";
 import { LikeButton } from "./like-button";
@@ -135,6 +135,21 @@ export default async function WorkPage({ params }: { params: Params }) {
       .select("*", { count: "exact", head: true })
       .eq("following_id", work.author_id);
 
+    // Треки, в которые входит этот артефакт
+    const { data: trackRows } = await supabase
+      .from("series_items")
+      .select(
+        `series_id,
+         series:series!series_items_series_id_fkey(id, title, author_id)`
+      )
+      .eq("work_id", work.id);
+    const trackList =
+      (trackRows as unknown as Array<{
+        series: { id: string; title: string; author_id: string } | null;
+      }> | null)
+        ?.map((r) => r.series)
+        .filter((s): s is { id: string; title: string; author_id: string } => !!s) ?? [];
+
     return (
       <main className="mx-auto max-w-6xl px-4 py-8">
         {isOwner && !isPublished && (
@@ -259,9 +274,9 @@ export default async function WorkPage({ params }: { params: Params }) {
             {isPublished && <CommentSection workId={work.id} />}
           </article>
 
-          {/* 6. Правая колонка — карточка автора */}
+          {/* 6. Правая колонка — карточка автора + треки */}
           {author && (
-            <div className="md:sticky md:top-20 md:self-start">
+            <div className="md:sticky md:top-20 md:self-start flex flex-col gap-4">
               <AuthorSideCard
                 author={author}
                 followersCount={followersCount ?? 0}
@@ -269,6 +284,26 @@ export default async function WorkPage({ params }: { params: Params }) {
                 viewerLogged={!!viewer}
                 isFollowing={isFollowingAuthor}
               />
+              {trackList.length > 0 && (
+                <aside className="rounded-lg border border-border bg-card p-5">
+                  <h2 className="text-sm font-medium mb-3 flex items-center gap-1.5">
+                    <Layers className="size-3.5" />
+                    В треках
+                  </h2>
+                  <ul className="flex flex-col gap-2">
+                    {trackList.map((t) => (
+                      <li key={t.id}>
+                        <Link
+                          href={`/tracks/${t.id}`}
+                          className="text-sm text-primary hover:underline line-clamp-2"
+                        >
+                          {t.title}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </aside>
+              )}
             </div>
           )}
         </div>

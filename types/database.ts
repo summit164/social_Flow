@@ -87,6 +87,27 @@ export type Comment = {
   updated_at: string;
 };
 
+export type Series = {
+  id: string;
+  author_id: string;
+  parent_id: string | null;
+  depth: number;
+  title: string;
+  description: string | null;
+  cover_url: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export const SERIES_MAX_DEPTH = 3;
+
+export type SeriesItem = {
+  series_id: string;
+  work_id: string;
+  position: number;
+  added_at: string;
+};
+
 /**
  * Минимальное Database-описание для @supabase/supabase-js.
  * Достаточно для строгой типизации .from("works") и т.д.
@@ -103,6 +124,8 @@ export type Database = {
       follows:  { Row: Follow;  Insert: Pick<Follow, "follower_id" | "following_id">; Update: never };
       bookmarks:{ Row: Bookmark;Insert: Pick<Bookmark, "user_id" | "work_id">; Update: never };
       comments: { Row: Comment; Insert: Pick<Comment, "work_id" | "author_id" | "content"> & Partial<Comment>; Update: Partial<Comment> };
+      series: { Row: Series; Insert: Pick<Series, "author_id" | "title"> & Partial<Series>; Update: Partial<Series> };
+      series_items: { Row: SeriesItem; Insert: Pick<SeriesItem, "series_id" | "work_id"> & Partial<SeriesItem>; Update: Partial<SeriesItem> };
     };
     Enums: { work_status: WorkStatus; work_kind: WorkKind };
   };

@@ -12,6 +12,7 @@ import {
   Send,
   NotebookText,
   MessageSquareText,
+  Layers,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getInitials } from "@/lib/profile/utils";
@@ -38,7 +39,8 @@ export default async function PublicProfilePage({
 }) {
   const { username } = await params;
   const { tab } = await searchParams;
-  const activeTab: "artifacts" | "posts" = tab === "posts" ? "posts" : "artifacts";
+  const activeTab: "artifacts" | "posts" | "tracks" =
+    tab === "posts" ? "posts" : tab === "tracks" ? "tracks" : "artifacts";
   const supabase = await createClient();
 
   const { data: profile } = await supabase
@@ -76,18 +78,36 @@ export default async function PublicProfilePage({
         .eq("follower_id", profile.id),
     ]);
 
-  // Работы автора по активной вкладке. RLS отфильтрует чужие черновики.
-  const { data: works } = await supabase
-    .from("works")
-    .select(
-      `id, title, content, description, discipline, status, kind, published_at, created_at,
-       work_files(storage_path, mime_type, position),
-       likes(count), comments(count)`
-    )
-    .eq("author_id", profile.id)
-    .eq("kind", activeTab === "posts" ? "post" : "artifact")
-    .order("published_at", { ascending: false, nullsFirst: false })
-    .order("created_at", { ascending: false });
+  // Работы автора по активной вкладке. На «tracks» works не нужны.
+  const { data: works } =
+    activeTab === "tracks"
+      ? { data: null }
+      : await supabase
+          .from("works")
+          .select(
+            `id, title, content, description, discipline, status, kind, published_at, created_at,
+             work_files(storage_path, mime_type, position),
+             likes(count), comments(count)`
+          )
+          .eq("author_id", profile.id)
+          .eq("kind", activeTab === "posts" ? "post" : "artifact")
+          .order("published_at", { ascending: false, nullsFirst: false })
+          .order("created_at", { ascending: false });
+
+  // Треки автора — только при активной вкладке «tracks»
+  const tracks =
+    activeTab === "tracks"
+      ? (
+          await supabase
+            .from("series")
+            .select(
+              `id, title, description, created_at,
+               series_items(count)`
+            )
+            .eq("author_id", profile.id)
+            .order("created_at", { ascending: false })
+        ).data
+      : null;
 
   // Лайки текущего пользователя на этих работах
   const workIds = (works ?? []).map((w) => w.id);
@@ -228,11 +248,21 @@ export default async function PublicProfilePage({
                   icon={<MessageSquareText className="size-4" />}
                   active={activeTab === "posts"}
                 />
+                <ProfileTabLink
+                  href={`/u/${profile.username}?tab=tracks`}
+                  label="Треки"
+                  icon={<Layers className="size-4" />}
+                  active={activeTab === "tracks"}
+                />
               </div>
               {isOwnProfile && (
                 <Link
                   href={
-                    activeTab === "posts" ? "/work/new?kind=post" : "/work/new"
+                    activeTab === "tracks"
+                      ? "/tracks/new"
+                      : activeTab === "posts"
+                        ? "/work/new?kind=post"
+                        : "/work/new"
                   }
                   className="ml-3 text-xs text-primary hover:underline whitespace-nowrap"
                 >
@@ -240,7 +270,45 @@ export default async function PublicProfilePage({
                 </Link>
               )}
             </div>
-            {works && works.length > 0 ? (
+            {activeTab === "tracks" ? (
+              tracks && tracks.length > 0 ? (
+                <ul className="flex flex-col gap-3">
+                  {tracks.map((t) => {
+                    const itemsCount =
+                      Array.isArray(t.series_items) && t.series_items[0]
+                        ? (t.series_items[0] as { count: number }).count
+                        : 0;
+                    return (
+                      <li key={t.id}>
+                        <Link
+                          href={`/tracks/${t.id}`}
+                          className="block rounded-lg border border-border bg-card p-4 hover:bg-secondary/30 transition-colors"
+                        >
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                            <Layers className="size-3.5" />
+                            <span>{itemsCount} артефактов</span>
+                          </div>
+                          <h3 className="text-base font-medium leading-snug">
+                            {t.title}
+                          </h3>
+                          {t.description && (
+                            <p className="mt-1 text-sm text-muted-foreground line-clamp-2 leading-relaxed">
+                              {t.description}
+                            </p>
+                          )}
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {isOwnProfile
+                    ? "У вас пока нет треков. Создайте первый — нажмите «+ Создать»."
+                    : "У этого пользователя пока нет треков."}
+                </p>
+              )
+            ) : works && works.length > 0 ? (
               <div className="flex flex-col gap-3">
                 {works.map((w) => {
                   const likesCount =

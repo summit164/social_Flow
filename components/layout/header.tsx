@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Plus, Notebook, Search } from "lucide-react";
+import { Plus, Notebook, Search, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
 import { UserMenu } from "./user-menu";
@@ -22,9 +22,9 @@ export async function Header() {
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border bg-background/80 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
+      <div className="mx-auto grid h-16 max-w-7xl grid-cols-3 items-center px-6">
         {/* Логотип */}
-        <Link href="/" className="flex items-center gap-2.5 group">
+        <Link href="/" className="flex items-center gap-2.5 group justify-self-start">
           <div className="relative size-11 flex items-center justify-center transition-transform group-hover:scale-105">
             <Image
               src="/logo.png"
@@ -40,8 +40,8 @@ export async function Header() {
           </span>
         </Link>
 
-        {/* Навигация */}
-        <nav className="hidden md:flex items-center gap-1">
+        {/* Навигация — по центру экрана */}
+        <nav className="hidden md:flex items-center gap-1 justify-self-center">
           <Button variant="ghost" size="sm" asChild>
             <Link href="/feed">
               <Notebook className="size-4" />
@@ -54,10 +54,20 @@ export async function Header() {
               Поиск
             </Link>
           </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled
+            className="text-muted-foreground"
+            title="Скоро"
+          >
+            <Briefcase className="size-4" />
+            Вакансии (скоро)
+          </Button>
         </nav>
 
         {/* Действия справа: аватар-меню для залогиненного, кнопки для гостя */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 justify-self-end">
           {profile ? (
             <>
               <Button size="sm" asChild>
