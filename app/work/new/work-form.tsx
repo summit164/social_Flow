@@ -19,6 +19,7 @@ import { createWorkAction } from "@/lib/work/actions";
 import { workInputSchema, type WorkInput, MAX_FILE_SIZE } from "@/lib/work/schemas";
 import { formatFileSize } from "@/lib/work/utils";
 import { FileText, X, Paperclip } from "lucide-react";
+import { GithubIcon } from "@/components/ui/icons/github-icon";
 
 export function WorkForm() {
   const [serverError, setServerError] = useState<string | null>(null);
@@ -34,6 +35,7 @@ export function WorkForm() {
       content: "",
       discipline: "",
       tags: "",
+      repo_url: "",
     },
   });
 
@@ -137,6 +139,31 @@ export function WorkForm() {
                 </FormControl>
                 <FormDescription className="text-xs">
                   Через запятую
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="repo_url"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="flex items-center gap-1.5">
+                  <GithubIcon className="size-4" />
+                  Ссылка на GitHub
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    type="url"
+                    placeholder="https://github.com/owner/repo"
+                    {...field}
+                  />
+                </FormControl>
+                <FormDescription className="text-xs">
+                  Если работа лежит в репозитории — добавьте ссылку, и на странице
+                  артефакта появится живая карточка с описанием, языком и куском README.
                 </FormDescription>
                 <FormMessage />
               </FormItem>

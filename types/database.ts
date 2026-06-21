@@ -34,6 +34,7 @@ export type Work = {
   discipline: string | null;
   status: WorkStatus;
   kind: WorkKind;
+  repo_url: string | null;
   views_count: number;
   created_at: string;
   updated_at: string;
@@ -108,6 +109,54 @@ export type SeriesItem = {
   added_at: string;
 };
 
+export type Company = {
+  id: string;
+  owner_id: string;
+  name: string;
+  description: string | null;
+  logo_url: string | null;
+  cover_url: string | null;
+  website: string | null;
+  location: string | null;
+  industry: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type VacancyEmployment =
+  | "full_time"
+  | "part_time"
+  | "internship"
+  | "contract";
+
+export type VacancyStatus = "open" | "closed";
+
+export type Vacancy = {
+  id: string;
+  company_id: string;
+  posted_by: string;
+  title: string;
+  description: string | null;
+  employment_type: VacancyEmployment;
+  location: string | null;
+  is_remote: boolean;
+  salary_min: number | null;
+  salary_max: number | null;
+  salary_currency: string | null;
+  apply_url: string | null;
+  contact_email: string | null;
+  status: VacancyStatus;
+  created_at: string;
+  updated_at: string;
+};
+
+export const EMPLOYMENT_LABELS: Record<VacancyEmployment, string> = {
+  full_time: "Полный день",
+  part_time: "Частичная занятость",
+  internship: "Стажировка",
+  contract: "Контракт",
+};
+
 /**
  * Минимальное Database-описание для @supabase/supabase-js.
  * Достаточно для строгой типизации .from("works") и т.д.
@@ -126,6 +175,8 @@ export type Database = {
       comments: { Row: Comment; Insert: Pick<Comment, "work_id" | "author_id" | "content"> & Partial<Comment>; Update: Partial<Comment> };
       series: { Row: Series; Insert: Pick<Series, "author_id" | "title"> & Partial<Series>; Update: Partial<Series> };
       series_items: { Row: SeriesItem; Insert: Pick<SeriesItem, "series_id" | "work_id"> & Partial<SeriesItem>; Update: Partial<SeriesItem> };
+      companies: { Row: Company; Insert: Pick<Company, "owner_id" | "name"> & Partial<Company>; Update: Partial<Company> };
+      vacancies: { Row: Vacancy; Insert: Pick<Vacancy, "company_id" | "posted_by" | "title"> & Partial<Vacancy>; Update: Partial<Vacancy> };
     };
     Enums: { work_status: WorkStatus; work_kind: WorkKind };
   };

@@ -54,15 +54,11 @@ export async function Header() {
               Поиск
             </Link>
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled
-            className="text-muted-foreground"
-            title="Скоро"
-          >
-            <Briefcase className="size-4" />
-            Вакансии (скоро)
+          <Button variant="ghost" size="sm" asChild>
+            <Link href="/jobs">
+              <Briefcase className="size-4" />
+              Вакансии
+            </Link>
           </Button>
         </nav>
 

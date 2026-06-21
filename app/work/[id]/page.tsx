@@ -13,6 +13,7 @@ import { AuthorFollow } from "@/components/work/author-follow";
 import { CommentSection } from "@/components/comment/comment-section";
 import { ArtifactHeroPreview } from "@/components/work/artifact-hero-preview";
 import { AuthorSideCard } from "@/components/work/author-side-card";
+import { GitHubRepoCard } from "@/components/work/github-repo-card";
 
 type Params = Promise<{ id: string }>;
 
@@ -237,6 +238,13 @@ export default async function WorkPage({ params }: { params: Params }) {
               <p className="mt-6 text-lg leading-relaxed text-muted-foreground">
                 {work.description}
               </p>
+            )}
+
+            {/* GitHub-карточка (если автор указал репозиторий) */}
+            {work.repo_url && (
+              <div className="mt-6">
+                <GitHubRepoCard url={work.repo_url} />
+              </div>
             )}
 
             {/* 5. Основной текст */}

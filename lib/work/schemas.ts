@@ -30,6 +30,17 @@ export const workInputSchema = z.object({
     .max(200, "Максимум 200 символов")
     .optional()
     .or(z.literal("")),
+  // Ссылка на репозиторий GitHub (необязательно).
+  // Принимаем только домен github.com — другие источники пока не поддерживаем.
+  repo_url: z
+    .string()
+    .trim()
+    .regex(
+      /^https?:\/\/(www\.)?github\.com\/[^/\s]+\/[^/\s]+\/?$/i,
+      "Ожидается ссылка вида https://github.com/owner/repo"
+    )
+    .optional()
+    .or(z.literal("")),
 });
 
 export type WorkInput = z.infer<typeof workInputSchema>;

@@ -19,6 +19,11 @@ type ActionResult =
   | { error: string }
   | { success: true; workId?: string };
 
+/** Чистим хвостовой слэш и приводим домен к нижнему регистру. */
+function normalizeGithubUrl(input: string): string {
+  return input.trim().replace(/\/+$/, "");
+}
+
 /**
  * Создание работы. Принимает данные формы и опционально файлы (FormData).
  * Если publish=true — сразу публикуется, иначе сохраняется как черновик.
@@ -56,6 +61,9 @@ export async function createWorkAction(
       description: parsed.data.description || null,
       content: parsed.data.content || null,
       discipline: parsed.data.discipline || null,
+      repo_url: parsed.data.repo_url
+        ? normalizeGithubUrl(parsed.data.repo_url)
+        : null,
       status: publish ? "published" : "draft",
       published_at: publish ? new Date().toISOString() : null,
     })
